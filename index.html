@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Professional Tic-Tac-Toe Game</title>
+<style>
+  :root {
+    --color-bg: #0f172a;
+    --color-primary: #4f46e5;
+    --color-primary-dark: #4338ca;
+    --color-primary-alt: #6366f1;
+    --color-x: #ef4444; /* Red */
+    --color-o: #3b82f6; /* Blue */
+    --color-text-light: #f1f5f9;
+    --color-win-highlight-x: #fca5a5;
+    --color-win-highlight-o: #93c5fd;
+    --color-draw: #94a3b8;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--color-bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--color-text-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 16px;
+    user-select: none;
+  }
+
+  #app {
+    background: #1e293b;
+    padding: 32px 40px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 0 30px rgb(79 70 229 / 0.6);
+    text-align: center;
+    position: relative;
+  }
+
+  h1 {
+    font-weight: 900;
+    font-size: 2.4rem;
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Turn indicator */
+  #turn-indicator {
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+  }
+
+  .player-x {
+    color: var(--color-x);
+  }
+  .player-o {
+    color: var(--color-o);
+  }
+
+  /* Board styles */
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+
+  .cell {
+    background-color: #334155;
+    border-radius: 12px;
+    font-size: 4rem;
+    font-weight: 900;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: transparent;
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.1s ease;
+    position: relative;
+    user-select: none;
+  }
+
+  /* Smooth hover scale for empty cells */
+  .cell.empty:hover:not(.disabled) {
+    transform: scale(1.1);
+    background-color: #475569;
+  }
+  .cell.disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+  .cell.x {
+    color: var(--color-x);
+  }
+  .cell.o {
+    color: var(--color-o);
+  }
+
+  /* Highlight winning line */
+  .cell.win-x {
+    background: linear-gradient(135deg, #ff6b6b, #ef4444);
+    box-shadow: 0 0 20px #ef4444aa;
+    color: var(--color-text-light);
+  }
+  .cell.win-o {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    box-shadow: 0 0 20px #3b82f6aa;
+    color: var(--color-text-light);
+  }
+
+  #restart-btn {
+    margin-top: 24px;
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 32px;
+    color: var(--color-text-light);
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    user-select: none;
+  }
+  #restart-btn:hover,
+  #restart-btn:focus {
+    background-color: var(--color-primary-dark);
+    outline: none;
+    box-shadow: 0 0 25px var(--color-primary-alt);
+  }
+
+  /* Modal backdrop */
+  #modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 41, 55, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  #modal {
+    background: #334155;
+    border-radius: 16px;
+    padding: 32px 36px;
+    width: 90%;
+    max-width: 320px;
+    text-align: center;
+    box-shadow: 0 0 25px rgb(79 70 229 / 0.8);
+  }
+
+  #modal h2 {
+    margin: 0 0 24px;
+    font-weight: 900;
+    font-size: 1.8rem;
+    color: var(--color-text-light);
+  }
+  #modal button {
+    background: var(--color-primary);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 28px;
+    color: var(--color-text-light);
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  #modal button:hover,
+  #modal button:focus {
+    background-color: var(--color-primary-dark);
+    outline: none;
+    box-shadow: 0 0 25px var(--color-primary-alt);
+  }
+
+  /* Responsive */
+  @media (max-width:400px) {
+    #app {
+      padding: 24px 28px;
+    }
+    #board {
+      gap: 10px;
+    }
+    .cell {
+      font-size: 3.2rem;
+    }
+    #restart-btn {
+      padding: 12px 24px;
+      font-size: 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <main id="app" role="main" aria-label="Tic Tac Toe Game">
+    <h1>Tic-Tac-Toe</h1>
+    <div id="turn-indicator" aria-live="polite" aria-atomic="true" aria-relevant="text">
+      Player <span id="current-player" class="player-x">X</span>'s turn
+    </div>
+    <div id="board" role="grid" aria-label="Tic Tac Toe board" aria-readonly="false" tabindex="0">
+      <!-- 9 cells will be dynamically created -->
+    </div>
+    <button id="restart-btn" aria-label="Restart game">Restart Game</button>
+  </main>
+
+  <!-- Modal for game result -->
+  <div id="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <section id="modal">
+      <h2 id="modal-title"></h2>
+      <button id="modal-restart-btn" aria-label="Restart game">Play Again</button>
+    </section>
+  </div>
+
+<script>
+  (() => {
+    // DOM Elements
+    const boardEl = document.getElementById('board');
+    const turnIndicator = document.getElementById('turn-indicator');
+    const currentPlayerEl = document.getElementById('current-player');
+    const restartBtn = document.getElementById('restart-btn');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const modalTitle = document.getElementById('modal-title');
+    const modalRestartBtn = document.getElementById('modal-restart-btn');
+
+    // Game state
+    let boardState = Array(9).fill(null); // Holds 'X','O' or null
+    let currentPlayer = 'X';
+    let gameActive = true;
+
+    // Winning combos
+    const winningCombos = [
+      [0,1,2],
+      [3,4,5],
+      [6,7,8],
+      [0,3,6],
+      [1,4,7],
+      [2,5,8],
+      [0,4,8],
+      [2,4,6]
+    ];
+
+    // Initialize board with cells
+    function initBoard() {
+      boardEl.innerHTML = '';
+      for(let i=0; i<9; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell', 'empty');
+        cell.setAttribute('role', 'gridcell');
+        cell.setAttribute('tabindex', '0');
+        cell.setAttribute('aria-label', `Cell ${i+1}`);
+        cell.dataset.cellIndex = i;
+        cell.addEventListener('click', onCellClick);
+        cell.addEventListener('keydown', onCellKeyDown);
+        boardEl.appendChild(cell);
+      }
+    }
+
+    // Update turn indicator text and color
+    function updateTurnIndicator() {
+      currentPlayerEl.textContent = currentPlayer;
+      if(currentPlayer === 'X') {
+        currentPlayerEl.classList.add('player-x');
+        currentPlayerEl.classList.remove('player-o');
+      } else {
+        currentPlayerEl.classList.add('player-o');
+        currentPlayerEl.classList.remove('player-x');
+      }
+      turnIndicator.textContent = `Player ${currentPlayer}'s turn`;
+      turnIndicator.prepend(currentPlayerEl);
+    }
+
+    // Handle cell click
+    function onCellClick(e) {
+      if(!gameActive) return;
+
+      const cell = e.currentTarget;
+      const idx = parseInt(cell.dataset.cellIndex, 10);
+      if(boardState[idx] !== null) return;
+
+      makeMove(cell, idx);
+    }
+
+    // Keyboard controls - space/enter to mark cell, arrow keys for navigation
+    function onCellKeyDown(e) {
+      const cell = e.currentTarget;
+      const idx = parseInt(cell.dataset.cellIndex, 10);
+      switch(e.key) {
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if(gameActive && boardState[idx] === null) {
+            makeMove(cell, idx);
+          }
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          boardEl.children[(idx + 1) % 9].focus();
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          boardEl.children[(idx + 8) % 9].focus();
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          boardEl.children[(idx + 3) % 9].focus();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          boardEl.children[(idx + 6) % 9].focus();
+          break;
+      }
+    }
+
+    // Mark the cell and update state
+    function makeMove(cell, idx) {
+      boardState[idx] = currentPlayer;
+      cell.textContent = currentPlayer;
+      cell.classList.remove('empty');
+      cell.classList.add(currentPlayer.toLowerCase());
+      cell.setAttribute('aria-label', `Cell ${idx+1}, ${currentPlayer}`);
+
+      // Check if win or draw
+      if(checkWin(currentPlayer)) {
+        gameActive = false;
+        highlightWinningCells(currentPlayer);
+        updateTurnIndicator();
+        showModal(`Player ${currentPlayer} wins!`);
+        return;
+      }
+      if(checkDraw()) {
+        gameActive = false;
+        updateTurnIndicator();
+        showModal("It's a draw!");
+        return;
+      }
+
+      // Switch player
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updateTurnIndicator();
+    }
+
+    // Check win conditions
+    function checkWin(player) {
+      return winningCombos.some(combo => combo.every(idx => boardState[idx] === player));
+    }
+
+    // Check draw: all cells filled and no winner
+    function checkDraw() {
+      return boardState.every(cell => cell !== null);
+    }
+
+    // Highlight winning cells visually
+    function highlightWinningCells(player) {
+      winningCombos.forEach(combo => {
+        if(combo.every(idx => boardState[idx] === player)) {
+          combo.forEach(idx => {
+            const cell = boardEl.children[idx];
+            cell.classList.add(player.toLowerCase() === 'x' ? 'win-x' : 'win-o');
+          });
+        }
+      });
+      // Disable all cells
+      Array.from(boardEl.children).forEach(cell => cell.classList.add('disabled'));
+    }
+
+    // Modal display
+    function showModal(message) {
+      modalTitle.textContent = message;
+      modalBackdrop.style.display = 'flex';
+      modalRestartBtn.focus();
+    }
+    function closeModal() {
+      modalBackdrop.style.display = 'none';
+      restartGame();
+    }
+
+    // Restart Game resets state and UI
+    function restartGame() {
+      boardState = Array(9).fill(null);
+      currentPlayer = 'X';
+      gameActive = true;
+      updateTurnIndicator();
+      // Reset cell states
+      Array.from(boardEl.children).forEach(cell => {
+        cell.textContent = '';
+        cell.className = 'cell empty';
+        cell.setAttribute('aria-label', `Cell ${parseInt(cell.dataset.cellIndex, 10) + 1}`);
+        cell.classList.remove('disabled','win-x','win-o','x','o');
+      });
+      boardEl.children[0].focus();
+    }
+
+    // Event listeners
+    restartBtn.addEventListener('click', restartGame);
+    modalRestartBtn.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => {
+      if(e.target === modalBackdrop) closeModal();
+    });
+    // Close modal with escape key
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape' && modalBackdrop.style.display === 'flex') {
+        closeModal();
+      }
+    });
+
+    // Initialize app
+    initBoard();
+    updateTurnIndicator();
+
+  })();
+</script>
+</body>
+</html>
+
+
